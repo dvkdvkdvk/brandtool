@@ -19,18 +19,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check if DATABASE_URL is set
+    if (!process.env.DATABASE_URL) {
+      console.error("[v0] DATABASE_URL is not set")
+      return NextResponse.json(
+        { error: "Database not configured" },
+        { status: 500 }
+      )
+    }
+
     const otp = generateOTP()
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
     console.log("[v0] Generated OTP:", otp, "Expires at:", expiresAt)
 
-    const sql = neon(process.env.DATABASE_URL!)
-    console.log("[v0] Database URL exists:", !!process.env.DATABASE_URL)
+    const sql = neon(process.env.DATABASE_URL)
+    console.log("[v0] Database connection initialized")
 
     // Check if user exists, if not create them
-    const existing = await sql`
-      SELECT id FROM profiles WHERE phone_number = ${phone}
-    `
-    console.log("[v0] Existing user check result:", existing.length)
+    let existing
+    try {
+      existing = await sql`
+        SELECT id FROM profiles WHERE phone_number = ${phone}
+      `
+      console.log("[v0] Existing user check result:", existing.length)
+    } catch (dbError) {
+      console.error("[v0] Database query error:", dbError instanceof Error ? dbError.message : dbError)
+      throw new Error("Database query failed")
+    }
 
     if (existing.length === 0) {
       console.log("[v0] Creating new user")
