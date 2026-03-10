@@ -6,14 +6,17 @@ import { FieldGroup, Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { useState, useEffect } from "react"
-import { Copy, Check, Sparkles } from "lucide-react"
+import { Copy, Check, Sparkles, ArrowUpRight } from "lucide-react"
+import { useAuth } from "@/components/auth-context"
 
 export default function SettingsPage() {
+  const { user } = useAuth()
   const [webhookUrl, setWebhookUrl] = useState("")
   const [apiKey, setApiKey] = useState("")
   const [verifyToken, setVerifyToken] = useState("")
   const [isSaving, setIsSaving] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [isUpgrading, setIsUpgrading] = useState(false)
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -64,6 +67,33 @@ export default function SettingsPage() {
     setCopied(true)
     toast.success("Copied to clipboard!")
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleUpgradeClick = async () => {
+    if (!user?.id) {
+      toast.error("Please log in first")
+      return
+    }
+
+    setIsUpgrading(true)
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to create checkout")
+      }
+
+      const { checkoutUrl } = await response.json()
+      window.location.href = checkoutUrl
+    } catch (error) {
+      console.error("[v0] Error creating checkout:", error)
+      toast.error("Failed to start upgrade process")
+      setIsUpgrading(false)
+    }
   }
 
   return (
@@ -173,8 +203,39 @@ export default function SettingsPage() {
           </p>
         </CardContent>
       </Card>
-
-
-    </div>
-  )
-}
+      {/* Pro Features */}
+      <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
+        <CardHeader>
+          <CardTitle>Upgrade to Pro</CardTitle>
+          <CardDescription>Unlock advanced features and higher limits</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2.5 text-sm mb-5">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+              <span>Unlimited connections</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+              <span>10,000 messages/month</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+              <span>Advanced analytics</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+              <span>Priority support</span>
+            </div>
+          </div>
+          <div className="text-sm font-semibold text-primary mb-4">$2.90/month</div>
+          <Button 
+            onClick={handleUpgradeClick}
+            disabled={isUpgrading}
+            className="w-full"
+          >
+            {isUpgrading ? "Loading..." : "Upgrade Now"}
+            <ArrowUpRight className="w-4 h-4 ml-2" />
+          </Button>
+        </CardContent>
+      </Card>
