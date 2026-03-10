@@ -19,48 +19,26 @@ export async function POST(request: NextRequest) {
     }
 
     const sql = neon(process.env.DATABASE_URL)
+    const userId = "default-user"
 
-    // Create settings table if it doesn't exist
-    await sql`
-      CREATE TABLE IF NOT EXISTS settings (
-        id SERIAL PRIMARY KEY,
-        key VARCHAR(255) UNIQUE NOT NULL,
-        value TEXT NOT NULL,
-        updated_at TIMESTAMP DEFAULT NOW()
-      )
+    // Use the correct column names from the existing table
+    const result = await sql`
+      INSERT INTO settings (user_id, webhook_verify_token, access_token, updated_at) 
+      VALUES (${userId}, ${verifyToken}, ${apiKey || null}, NOW())
+      ON CONFLICT (user_id) DO UPDATE 
+      SET 
+        webhook_verify_token = EXCLUDED.webhook_verify_token,
+        access_token = EXCLUDED.access_token,
+        updated_at = NOW()
+      RETURNING *
     `
 
-    console.log("[v0] Settings table ready")
-
-    // Save each setting individually (upsert)
-    await sql`
-      INSERT INTO settings (key, value, updated_at) 
-      VALUES ('WEBHOOK_VERIFY_TOKEN', ${verifyToken}, NOW())
-      ON CONFLICT (key) DO UPDATE 
-      SET value = EXCLUDED.value, updated_at = NOW()
-    `
-    
-    if (apiKey) {
-      await sql`
-        INSERT INTO settings (key, value, updated_at) 
-        VALUES ('WHATSAPP_API_KEY', ${apiKey}, NOW())
-        ON CONFLICT (key) DO UPDATE 
-        SET value = EXCLUDED.value, updated_at = NOW()
-      `
-    }
-    
-    await sql`
-      INSERT INTO settings (key, value, updated_at) 
-      VALUES ('WEBHOOK_URL', ${webhookUrl || ''}, NOW())
-      ON CONFLICT (key) DO UPDATE 
-      SET value = EXCLUDED.value, updated_at = NOW()
-    `
-
-    console.log("[v0] Settings saved successfully")
+    console.log("[v0] Settings saved successfully:", result)
 
     return NextResponse.json({
       success: true,
       message: "Settings saved successfully",
+      data: result[0],
     })
   } catch (error) {
     console.error("[v0] Error saving settings:", error)
