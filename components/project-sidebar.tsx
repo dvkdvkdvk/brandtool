@@ -11,8 +11,6 @@ import {
   Settings,
   Trash2,
   FileCode,
-  Globe,
-  Loader2,
   Upload,
   X,
 } from 'lucide-react'
@@ -54,7 +52,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Sidebar,
   SidebarContent,
@@ -86,7 +83,6 @@ interface ProjectSidebarProps {
   onUpdateCSS: (css: string) => void
   onClearTokens: () => void
   onPasteCSS: (content: string, name: string) => void
-
   children: React.ReactNode
 }
 
@@ -103,7 +99,6 @@ export function ProjectSidebar({
   onUpdateCSS,
   onClearTokens,
   onPasteCSS,
-
   children,
 }: ProjectSidebarProps) {
   const [isCreateOpen, setIsCreateOpen] = React.useState(false)
@@ -114,102 +109,15 @@ export function ProjectSidebar({
   const [clientName, setClientName] = React.useState('')
   const [editName, setEditName] = React.useState('')
   const [editClientName, setEditClientName] = React.useState('')
-  const [scrapeUrl, setScrapeUrl] = React.useState('')
-  const [isScrapingCss, setIsScrapingCss] = React.useState(false)
-  const [isCapturingScreenshot, setIsCapturingScreenshot] = React.useState(false)
   const [screenshotUrl, setScreenshotUrl] = React.useState('')
 
-  // Capture screenshot of client website for visual reference (optional)
-  const handleCaptureScreenshot = async () => {
-    if (!scrapeUrl.trim()) return
-    
-    setIsCapturingScreenshot(true)
-    try {
-      const response = await fetch('/api/screenshot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: scrapeUrl }),
-      })
-      
-      const data = await response.json()
-      
-      if (data.screenshotUrl) {
-        setScreenshotUrl(data.screenshotUrl)
-        if (activeProject) {
-          onUpdateProject(activeProject.id, { 
-            screenshotUrl: data.screenshotUrl,
-            clientUrl: scrapeUrl 
-          })
-        }
-        toast.success('Screenshot captured!', {
-          description: 'Visual reference added to project'
-        })
-      } else {
-        // Screenshot service unavailable - but that's OK, CSS tokens are enough
-        setScreenshotUrl('')
-      }
-    } catch (error) {
-      // Silent fail - screenshot is optional
-      console.warn('Screenshot capture skipped:', error)
-    } finally {
-      setIsCapturingScreenshot(false)
+  const handleOpenSettings = () => {
+    if (activeProject?.screenshotUrl) {
+      setScreenshotUrl(activeProject.screenshotUrl)
+    } else {
+      setScreenshotUrl('')
     }
-  }
-
-  const handleScrapeCss = async () => {
-    if (!scrapeUrl.trim()) {
-      toast.error('Enter a URL', { description: 'Paste the client website URL' })
-      return
-    }
-    
-    setIsScrapingCss(true)
-    try {
-      const response = await fetch('/api/scrape-css', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: scrapeUrl }),
-      })
-      
-      const data = await response.json()
-      
-      if (!response.ok) {
-        toast.error('Failed to import CSS', { 
-          description: data.error || 'Check the URL and try again' 
-        })
-        return
-      }
-      
-      if (data.css) {
-        // Auto-save the extracted CSS via the callback
-        onPasteCSS(data.css, 'scraped')
-        
-        // Build a summary message
-        const colorCount = data.summary?.totalColors || 0
-        const fontCount = data.summary?.totalFontFamilies || 0
-        const varCount = data.summary?.cssVariables || 0
-        
-        toast.success('CSS imported successfully!', {
-          description: `${colorCount} colors, ${fontCount} fonts, ${varCount} CSS variables`
-        })
-        
-        // Update project with client URL for reference
-        if (activeProject) {
-          onUpdateProject(activeProject.id, { 
-            clientUrl: scrapeUrl 
-          })
-        }
-        
-        // Try to capture screenshot too (async, don't block on failure)
-        setTimeout(() => handleCaptureScreenshot(), 500)
-      }
-    } catch (error) {
-      console.error('CSS scrape error:', error)
-      toast.error('Failed to import CSS', { 
-        description: 'Network error - check your connection and try again' 
-      })
-    } finally {
-      setIsScrapingCss(false)
-    }
+    setIsSettingsOpen(true)
   }
 
   const handleCreateProject = () => {
@@ -239,23 +147,6 @@ export function ProjectSidebar({
     }
   }
 
-  const handleOpenSettings = () => {
-    if (activeProject?.screenshotUrl) {
-      setScreenshotUrl(activeProject.screenshotUrl)
-    } else {
-      setScreenshotUrl('')
-    }
-    if (activeProject?.clientUrl) {
-      setScrapeUrl(activeProject.clientUrl)
-    }
-    setIsSettingsOpen(true)
-  }
-
-  const handleSaveCSS = () => {
-    // CSS is auto-saved via onPasteCSS callback now
-    toast.success('CSS saved', { description: 'Design tokens extracted from CSS' })
-  }
-
   const tokensToCSS = (tokens: DesignTokens): string => {
     let css = ':root {\n'
     if (tokens.colors) {
@@ -263,600 +154,300 @@ export function ProjectSidebar({
         css += `  --${key}: ${value};\n`
       })
     }
-    if (tokens.spacing) {
-      Object.entries(tokens.spacing).forEach(([key, value]) => {
-        css += `  --spacing-${key}: ${value};\n`
-      })
-    }
-    if (tokens.typography) {
-      Object.entries(tokens.typography).forEach(([key, value]) => {
+    if (tokens.fonts) {
+      Object.entries(tokens.fonts).forEach(([key, value]) => {
         css += `  --font-${key}: ${value};\n`
       })
     }
-    if (tokens.borderRadius) {
-      Object.entries(tokens.borderRadius).forEach(([key, value]) => {
-        css += `  --radius-${key}: ${value};\n`
-      })
-    }
-    if (tokens.shadows) {
-      Object.entries(tokens.shadows).forEach(([key, value]) => {
-        css += `  --shadow-${key}: ${value};\n`
-      })
-    }
-    css += '}'
+    css += '}\n'
     return css
   }
 
   return (
     <SidebarProvider>
-      <Sidebar className="border-r border-sidebar-border bg-sidebar">
-        <SidebarHeader className="border-b border-sidebar-border p-4">
+      <Sidebar>
+        <SidebarHeader className="border-b">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {/* OpenDXP Logo Mark */}
-              <div className="relative h-7 w-7 flex-shrink-0">
-                <div className="absolute inset-0 rounded-sm bg-primary" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="h-3 w-3 rounded-full bg-sidebar" />
-                </div>
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <FileCode className="h-4 w-4 text-primary" />
               </div>
-              <span className="text-sm font-semibold text-sidebar-foreground tracking-tight">
-                Generator
-              </span>
+              <h1 className="font-bold text-sm">BrandTool</h1>
             </div>
             <ThemeToggle />
           </div>
         </SidebarHeader>
 
         <SidebarContent>
+          {/* Projects */}
           <SidebarGroup>
-            <SidebarGroupLabel className="flex items-center justify-between px-3">
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Projects
-              </span>
+            <div className="flex items-center justify-between px-2 py-2">
+              <SidebarGroupLabel>Projects</SidebarGroupLabel>
               <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                 <DialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                  >
+                  <Button size="icon" variant="ghost" className="h-6 w-6">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md bg-card border-border">
+                <DialogContent>
                   <DialogHeader>
-                    <DialogTitle className="text-lg font-bold text-card-foreground">New Project</DialogTitle>
-                    <DialogDescription className="text-muted-foreground">
-                      Create a new project to organize your client's components
-                    </DialogDescription>
+                    <DialogTitle>Create New Project</DialogTitle>
                   </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="project-name" className="font-medium text-card-foreground">Project Name</Label>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="project-name">Project Name</Label>
                       <Input
                         id="project-name"
-                        placeholder="Website Redesign"
+                        placeholder="My Brand Project"
                         value={projectName}
                         onChange={(e) => setProjectName(e.target.value)}
-                        className="border-border bg-background rounded-lg"
                       />
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="client-name" className="font-medium text-card-foreground">Client Name</Label>
+                    <div>
+                      <Label htmlFor="client-name">Client Name</Label>
                       <Input
                         id="client-name"
-                        placeholder="Acme Corp"
+                        placeholder="Client Name or Brand"
                         value={clientName}
                         onChange={(e) => setClientName(e.target.value)}
-                        className="border-border bg-background rounded-lg"
                       />
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsCreateOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      onClick={handleCreateProject}
-                      className="bg-primary font-semibold text-primary-foreground hover:bg-primary/90"
-                    >
+                    <Button onClick={handleCreateProject} disabled={!projectName || !clientName}>
                       Create Project
                     </Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-            </SidebarGroupLabel>
+            </div>
 
-            <SidebarGroupContent className="px-2">
-              <SidebarMenu className="space-y-1">
-                {projects.length === 0 ? (
-                  <div className="px-4 py-8 text-center">
-                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15">
-                      <FolderPlus className="h-5 w-5 text-primary" />
-                    </div>
-                    <p className="text-sm font-semibold text-sidebar-foreground">
-                      No projects yet
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Create your first project
-                    </p>
-                  </div>
-                ) : (
-                  projects.map((project) => (
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {projects.map((project) => (
+                  <SidebarMenuItem key={project.id}>
                     <Collapsible
-                      key={project.id}
                       defaultOpen={activeProject?.id === project.id}
+                      onOpenChange={() => onSelectProject(project)}
                     >
-                      <SidebarMenuItem className="mb-1">
-                        <div className="group/item flex items-center">
-                          <CollapsibleTrigger asChild>
-                            <SidebarMenuButton
-                              isActive={activeProject?.id === project.id}
-                              onClick={() => onSelectProject(project)}
-                              className={cn(
-                                "group flex-1 rounded-lg transition-colors h-auto py-2.5",
-                                activeProject?.id === project.id && "bg-primary/10"
-                              )}
-                            >
-                              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
-                              <div className="flex flex-col items-start gap-0.5">
-                                <span className="text-sm font-medium text-sidebar-foreground">
-                                  {project.clientName}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {project.name}
-                                </span>
-                              </div>
-                            </SidebarMenuButton>
-                          </CollapsibleTrigger>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 opacity-0 text-muted-foreground hover:text-foreground group-hover/item:opacity-100"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48 bg-popover border-border">
-                              <DropdownMenuItem onClick={() => handleEditProject(project)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Edit Project
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <DropdownMenuItem
-                                    onSelect={(e) => e.preventDefault()}
-                                    className="text-destructive focus:text-destructive"
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete Project
-                                  </DropdownMenuItem>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent className="bg-card border-border">
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete project?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will permanently delete the project "{project.name}" for {project.clientName} and all its requests. This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => onDeleteProject(project.id)}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                        <CollapsibleContent>
-                          <SidebarMenuSub className="ml-4 mt-1 border-l border-border pl-3">
-                            {project.requests.length === 0 ? (
-                              <p className="py-3 text-xs text-muted-foreground italic">
-                                No requests yet
-                              </p>
-                            ) : (
-                              project.requests.map((request) => (
-                                <SidebarMenuSubItem key={request.id}>
-                                  <div className="group/request flex items-center">
-                                    <SidebarMenuButton
-                                      size="sm"
-                                      isActive={activeRequest?.id === request.id}
-                                      onClick={() => onSelectRequest(request)}
-                                      className="flex-1"
-                                    >
-                                      <History className="h-3 w-3" />
-                                      <span className="truncate text-xs">
-                                        {request.prompt}
-                                      </span>
-                                    </SidebarMenuButton>
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-6 w-6 opacity-0 group-hover/request:opacity-100"
-                                        >
-                                          <Trash2 className="h-3 w-3" />
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>Delete request?</AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            This will delete this request and all its generated variants.
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                          <AlertDialogAction
-                                            onClick={() => onDeleteRequest(project.id, request.id)}
-                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                          >
-                                            Delete
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  </div>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton
+                          isActive={activeProject?.id === project.id}
+                          className="cursor-pointer"
+                        >
+                          <FolderPlus className="h-4 w-4" />
+                          <span>{project.name}</span>
+                          <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          <SidebarMenuSubItem>
+                            <span className="text-xs text-muted-foreground">{project.clientName}</span>
+                          </SidebarMenuSubItem>
+
+                          {project.requests && project.requests.length > 0 && (
+                            <>
+                              <SidebarMenuSubItem>
+                                <span className="text-xs font-semibold">Components</span>
+                              </SidebarMenuSubItem>
+                              {project.requests.map((request) => (
+                                <SidebarMenuSubItem
+                                  key={request.id}
+                                  isActive={activeRequest?.id === request.id}
+                                  className="cursor-pointer"
+                                  onClick={() => onSelectRequest(request)}
+                                >
+                                  <History className="h-3 w-3" />
+                                  <span className="text-xs">{request.prompt.substring(0, 30)}...</span>
                                 </SidebarMenuSubItem>
-                              ))
-                            )}
-                          </SidebarMenuSub>
-                        </CollapsibleContent>
-                      </SidebarMenuItem>
+                              ))}
+                            </>
+                          )}
+
+                          <SidebarMenuSubItem>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="w-full justify-start h-auto px-0 py-1"
+                              onClick={handleOpenSettings}
+                            >
+                              <Settings className="h-3 w-3 mr-2" />
+                              <span className="text-xs">Settings</span>
+                            </Button>
+                          </SidebarMenuSubItem>
+
+                          <SidebarMenuSubItem>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="w-full justify-start h-auto px-0 py-1 text-destructive hover:text-destructive"
+                                  onClick={() => setEditingProject(project)}
+                                >
+                                  <Trash2 className="h-3 w-3 mr-2" />
+                                  <span className="text-xs">Delete</span>
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Project?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will delete "{project.name}" and all its components.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => onDeleteProject(project.id)}
+                                    className="bg-destructive"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </SidebarMenuSubItem>
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
                     </Collapsible>
-                  ))
-                )}
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-
-          {activeProject && (
-            <SidebarGroup>
-              <SidebarGroupLabel className="px-3">
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Client Settings
-                </span>
-              </SidebarGroupLabel>
-              <SidebarGroupContent className="px-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start gap-2 rounded-lg"
-                  onClick={handleOpenSettings}
-                >
-                  <Settings className="h-4 w-4 text-primary" />
-                  {activeProject.clientName} Settings
-                  {activeProject.uploadedFiles && activeProject.uploadedFiles.length > 0 && (
-                    <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium">
-                      {activeProject.uploadedFiles.length} file{activeProject.uploadedFiles.length !== 1 ? 's' : ''}
-                    </span>
-                  )}
-                </Button>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          )}
         </SidebarContent>
 
-        <SidebarFooter className="border-t border-sidebar-border p-2" />
-
-        {/* Edit Project Dialog */}
-        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-bold">Edit Project</DialogTitle>
-              <DialogDescription>
-                Update project and client information
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-project-name" className="font-medium">Project Name</Label>
-                <Input
-                  id="edit-project-name"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-client-name" className="font-medium">Client Name</Label>
-                <Input
-                  id="edit-client-name"
-                  value={editClientName}
-                  onChange={(e) => setEditClientName(e.target.value)}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button 
-                variant="outline" 
-                onClick={() => setIsEditOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleSaveEdit}
-              >
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Project Settings Dialog */}
-        <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-          <DialogContent className="sm:max-w-2xl max-h-[85vh] p-0">
-            <DialogHeader className="shrink-0 p-6 pb-0">
-              <DialogTitle className="text-xl font-bold">{activeProject?.clientName} Settings</DialogTitle>
-              <DialogDescription>
-                Configure brand styles and design tokens for {activeProject?.name}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="overflow-y-auto max-h-[calc(85vh-100px)] px-6 pb-6">
-              <div className="space-y-5">
-                {/* Visual Reference Section */}
-                <div className="rounded-xl border border-border p-5 bg-muted/50">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15">
-                      <Globe className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold">Visual Reference</h3>
-                      <p className="text-xs text-muted-foreground">Enter client website URL for AI to match style</p>
-                    </div>
-                  </div>
-                  
-                  {/* URL Import + Screenshot */}
-                  <div className="flex gap-2 mb-3">
-                    <Input
-                      type="url"
-                      placeholder="https://client-website.com"
-                      value={scrapeUrl}
-                      onChange={(e) => setScrapeUrl(e.target.value)}
-                      className="flex-1"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && scrapeUrl.trim() && !isScrapingCss) {
-                          handleScrapeCss()
-                        }
-                      }}
-                    />
-                    <Button
-                      size="sm"
-                      onClick={handleScrapeCss}
-                      disabled={!scrapeUrl.trim() || isScrapingCss || isCapturingScreenshot}
-                      variant="default"
-                    >
-                      {(isScrapingCss || isCapturingScreenshot) ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : (
-                        <Globe className="h-4 w-4 mr-2" />
-                      )}
-                      Import
-                    </Button>
-                  </div>
-                  
-                  {/* Screenshot Upload Option */}
-                  <div className="mt-3">
-                    <p className="text-xs text-muted-foreground mb-2">Or upload a screenshot of the client website:</p>
-                    <label className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-lg hover:border-primary/50 hover:bg-muted/30 cursor-pointer transition-colors">
-                      <Upload className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Upload Screenshot</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0]
-                          if (!file) return
-                          
-                          try {
-                            const formData = new FormData()
-                            formData.append('file', file)
-                            
-                            const response = await fetch('/api/upload-screenshot', {
-                              method: 'POST',
-                              body: formData,
-                            })
-                            
-                            const data = await response.json()
-                            
-                            if (data.url) {
-                              setScreenshotUrl(data.url)
-                              if (activeProject) {
-                                onUpdateProject(activeProject.id, { 
-                                  screenshotUrl: data.url 
-                                })
-                              }
-                              toast.success('Screenshot uploaded!', {
-                                description: 'AI will use this as visual reference'
-                              })
-                            }
-                          } catch (error) {
-                            toast.error('Upload failed', { description: 'Please try again' })
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-
-                  {/* Screenshot Preview */}
-                  {(screenshotUrl || activeProject?.screenshotUrl) && (
-                    <div className="mt-3 rounded-lg border border-border overflow-hidden">
-                      <img 
-                        src={screenshotUrl || activeProject?.screenshotUrl} 
-                        alt="Client website screenshot"
-                        className="w-full h-32 object-cover object-top"
-                      />
-                      <div className="p-2 bg-muted/50 text-xs text-muted-foreground flex items-center justify-between">
-                        <span>Visual reference - AI will match this style</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-5 px-2 text-xs hover:text-destructive"
-                          onClick={() => {
-                            setScreenshotUrl('')
-                            if (activeProject) {
-                              onUpdateProject(activeProject.id, { screenshotUrl: '' })
-                            }
-                          }}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Extracted Tokens Display */}
-                {activeProject?.designTokens && (
-                  Object.keys(activeProject.designTokens.colors || {}).length > 0 ||
-                  Object.keys(activeProject.designTokens.typography || {}).length > 0 ||
-                  Object.keys(activeProject.designTokens.spacing || {}).length > 0 ||
-                  Object.keys(activeProject.designTokens.borderRadius || {}).length > 0 ||
-                  Object.keys(activeProject.designTokens.shadows || {}).length > 0
-                ) && (
-                  <div className="rounded-xl border border-border p-4 bg-muted/30 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold">Extracted Tokens</p>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={onClearTokens}
-                        className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                    
-                    {/* Colors */}
-                    {activeProject.designTokens.colors && Object.keys(activeProject.designTokens.colors).length > 0 && (() => {
-                      const colorEntries = Object.entries(activeProject.designTokens.colors)
-                        .filter(([, v]) => !v.startsWith('var('))
-                      return colorEntries.length > 0 ? (
-                        <div>
-                          <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">
-                            Colors ({colorEntries.length})
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {colorEntries.slice(0, 16).map(([name, value]) => (
-                              <div
-                                key={name}
-                                className="h-7 w-7 rounded-lg border border-border cursor-pointer hover:scale-110 transition-transform shadow-sm"
-                                style={{ background: value }}
-                                title={`${name}: ${value}`}
-                              />
-                            ))}
-                            {colorEntries.length > 16 && (
-                              <div className="h-7 w-7 rounded-lg border border-border bg-secondary flex items-center justify-center">
-                                <span className="text-[8px] font-semibold text-muted-foreground">+{colorEntries.length - 16}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ) : null
-                    })()}
-                    
-                    {/* Typography */}
-                    {activeProject.designTokens.typography && Object.keys(activeProject.designTokens.typography).length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">
-                          Typography ({Object.keys(activeProject.designTokens.typography).length})
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {Object.entries(activeProject.designTokens.typography).slice(0, 8).map(([name, value]) => (
-                            <div
-                              key={name}
-                              className="px-2 py-1 rounded-lg bg-secondary border border-border text-[10px] truncate max-w-[120px]"
-                              title={`${name}: ${value}`}
-                            >
-                              {value.toString().split(',')[0]}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Spacing */}
-                    {activeProject.designTokens.spacing && Object.keys(activeProject.designTokens.spacing).length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">
-                          Spacing ({Object.keys(activeProject.designTokens.spacing).length})
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {Object.entries(activeProject.designTokens.spacing).slice(0, 8).map(([name, value]) => (
-                            <div
-                              key={name}
-                              className="px-2 py-1 rounded-lg bg-secondary border border-border text-[10px] font-mono"
-                              title={name}
-                            >
-                              {value}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Border Radius */}
-                    {activeProject.designTokens.borderRadius && Object.keys(activeProject.designTokens.borderRadius).length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">
-                          Border Radius ({Object.keys(activeProject.designTokens.borderRadius).length})
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {Object.entries(activeProject.designTokens.borderRadius).slice(0, 6).map(([name, value]) => (
-                            <div
-                              key={name}
-                              className="h-7 w-7 bg-secondary border border-border flex items-center justify-center"
-                              style={{ borderRadius: value }}
-                              title={`${name}: ${value}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Shadows */}
-                    {activeProject.designTokens.shadows && Object.keys(activeProject.designTokens.shadows).length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">
-                          Shadows ({Object.keys(activeProject.designTokens.shadows).length})
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(activeProject.designTokens.shadows).slice(0, 4).map(([name, value]) => (
-                            <div
-                              key={name}
-                              className="h-8 w-12 bg-secondary rounded-lg"
-                              style={{ boxShadow: value }}
-                              title={`${name}: ${value}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
+        <SidebarFooter />
         <SidebarRail />
       </Sidebar>
 
-      <main className="flex flex-1 flex-col overflow-hidden">{children}</main>
+      {/* Settings Dialog */}
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Project Settings - {activeProject?.name}</DialogTitle>
+            <DialogDescription>Upload a visual reference for AI generation</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Visual Reference Section */}
+            <div className="rounded-lg border border-border p-4 bg-muted/50">
+              <h3 className="font-semibold text-sm mb-4 flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                Visual Reference
+              </h3>
+
+              <label className="flex items-center justify-center gap-3 p-6 border-2 border-dashed border-border rounded-lg hover:border-primary/50 hover:bg-muted/30 cursor-pointer transition-colors">
+                <Upload className="h-5 w-5 text-muted-foreground" />
+                <div className="text-center">
+                  <p className="text-sm font-medium text-foreground">Click to upload</p>
+                  <p className="text-xs text-muted-foreground">PNG, JPG up to 5MB</p>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    
+                    try {
+                      const formData = new FormData()
+                      formData.append('file', file)
+                      
+                      const response = await fetch('/api/upload-screenshot', {
+                        method: 'POST',
+                        body: formData,
+                      })
+                      
+                      const data = await response.json()
+                      
+                      if (data.url) {
+                        setScreenshotUrl(data.url)
+                        if (activeProject) {
+                          onUpdateProject(activeProject.id, { screenshotUrl: data.url })
+                        }
+                        toast.success('Screenshot uploaded!', {
+                          description: 'AI will match this design style'
+                        })
+                      } else {
+                        toast.error('Upload failed', { description: data.error || 'Try again' })
+                      }
+                    } catch (error) {
+                      toast.error('Upload failed', { description: 'Network error' })
+                    }
+                  }}
+                />
+              </label>
+
+              {(screenshotUrl || activeProject?.screenshotUrl) && (
+                <div className="mt-4 rounded-lg border border-border overflow-hidden">
+                  <img
+                    src={screenshotUrl || activeProject?.screenshotUrl!}
+                    alt="Reference"
+                    className="w-full h-40 object-cover object-top"
+                  />
+                  <div className="p-2 bg-muted/50 flex items-center justify-between">
+                    <span className="text-xs font-medium">Reference active</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 hover:text-destructive"
+                      onClick={() => {
+                        setScreenshotUrl('')
+                        if (activeProject) {
+                          onUpdateProject(activeProject.id, { screenshotUrl: '' })
+                        }
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setIsSettingsOpen(false)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Project</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-name">Project Name</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-client">Client Name</Label>
+              <Input
+                id="edit-client"
+                value={editClientName}
+                onChange={(e) => setEditClientName(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleSaveEdit}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <main className="flex-1">{children}</main>
     </SidebarProvider>
   )
 }
