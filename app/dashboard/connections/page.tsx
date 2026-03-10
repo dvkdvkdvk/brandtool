@@ -19,7 +19,35 @@ interface Connection {
 }
 
 export default function ConnectionsPage() {
-  const [connections, setConnections] = useState<Connection[]>([])
+  const [connections, setConnections] = useState<Connection[]>([
+    {
+      id: "demo-1",
+      phoneNumber: "+1 (555) 100-1234",
+      businessName: "Demo Coffee Shop",
+      status: "active",
+      automationEnabled: true,
+      messageCount: 247,
+      lastActive: "2 minutes ago",
+    },
+    {
+      id: "demo-2",
+      phoneNumber: "+1 (555) 200-5678",
+      businessName: "Demo Fitness Studio",
+      status: "active",
+      automationEnabled: true,
+      messageCount: 156,
+      lastActive: "15 minutes ago",
+    },
+    {
+      id: "demo-3",
+      phoneNumber: "+1 (555) 300-9012",
+      businessName: "Demo Boutique",
+      status: "inactive",
+      automationEnabled: false,
+      messageCount: 42,
+      lastActive: "3 hours ago",
+    },
+  ])
   const [showAddDialog, setShowAddDialog] = useState(false)
 
   const toggleAutomation = (id: string) => {

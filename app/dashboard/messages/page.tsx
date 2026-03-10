@@ -17,7 +17,48 @@ interface Message {
 
 export default function MessagesPage() {
   const [searchTerm, setSearchTerm] = useState("")
-  const [messages] = useState<Message[]>([])
+  const [messages] = useState<Message[]>([
+    {
+      id: "msg-1",
+      phoneNumber: "+1 (555) 100-1234",
+      incomingMessage: "Hey, are you open today?",
+      outgoingMessage: "Yes! We're open from 6 AM to 10 PM. Looking forward to seeing you! ☕",
+      status: "sent",
+      timestamp: "Today, 2:35 PM",
+    },
+    {
+      id: "msg-2",
+      phoneNumber: "+1 (555) 100-1234",
+      incomingMessage: "What's the WiFi password?",
+      outgoingMessage: "WiFi: OmniFlow_Coffee | Password: Welcome@Coffee123",
+      status: "sent",
+      timestamp: "Today, 1:12 PM",
+    },
+    {
+      id: "msg-3",
+      phoneNumber: "+1 (555) 200-5678",
+      incomingMessage: "Do you have any class openings tomorrow?",
+      outgoingMessage: "Yes! We have openings in our Yoga (9 AM), HIIT (5 PM), and Pilates (7 PM) classes. Which interests you?",
+      status: "sent",
+      timestamp: "Today, 12:48 PM",
+    },
+    {
+      id: "msg-4",
+      phoneNumber: "+1 (555) 200-5678",
+      incomingMessage: "Book me for the 5 PM HIIT class",
+      outgoingMessage: "Perfect! You're all set for tomorrow's 5 PM HIIT class. See you then! 💪",
+      status: "sent",
+      timestamp: "Today, 12:45 PM",
+    },
+    {
+      id: "msg-5",
+      phoneNumber: "+1 (555) 300-9012",
+      incomingMessage: "When does the new collection launch?",
+      outgoingMessage: "Our new spring collection launches this Friday! Check back tomorrow for exclusive early-bird access. ✨",
+      status: "sent",
+      timestamp: "Yesterday, 4:20 PM",
+    },
+  ])
 
   const filteredMessages = messages.filter((msg) =>
     msg.phoneNumber.includes(searchTerm) ||
