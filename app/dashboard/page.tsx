@@ -9,19 +9,19 @@ export default function DashboardPage() {
   const stats = [
     {
       title: "Active Connections",
-      value: "0",
-      description: "+0 this week",
+      value: "3",
+      description: "+1 this week",
       icon: Users,
     },
     {
       title: "Messages Processed",
-      value: "0",
-      description: "+0 today",
+      value: "445",
+      description: "+128 today",
       icon: MessageSquare,
     },
     {
       title: "Automations",
-      value: "0",
+      value: "2",
       description: "Active rules",
       icon: Zap,
     },
@@ -73,15 +73,38 @@ export default function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-64 bg-secondary/50 rounded-lg border border-border flex items-center justify-center">
-              <div className="text-center space-y-2">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                  <MessageSquare className="w-6 h-6 text-primary/50" />
+            <div className="h-64 bg-secondary/50 rounded-lg border border-border flex flex-col">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 text-sm">
+                <div className="flex items-start gap-2">
+                  <span className="text-xs text-muted-foreground/50 min-w-fit">[14:35]</span>
+                  <div className="text-muted-foreground">
+                    <span className="text-primary">Coffee Shop:</span> Customer inquiry processed
+                  </div>
                 </div>
-                <p className="text-muted-foreground text-sm">No activity yet</p>
-                <p className="text-muted-foreground/60 text-xs max-w-[200px]">
-                  Connect WhatsApp and enable automations to see live updates
-                </p>
+                <div className="flex items-start gap-2">
+                  <span className="text-xs text-muted-foreground/50 min-w-fit">[14:32]</span>
+                  <div className="text-muted-foreground">
+                    <span className="text-primary">Fitness Studio:</span> Class booking automation completed
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-xs text-muted-foreground/50 min-w-fit">[14:28]</span>
+                  <div className="text-muted-foreground">
+                    <span className="text-primary">Coffee Shop:</span> FAQ response sent to customer
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-xs text-muted-foreground/50 min-w-fit">[14:25]</span>
+                  <div className="text-muted-foreground">
+                    <span className="text-primary">Boutique:</span> New collection announcement scheduled
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-xs text-muted-foreground/50 min-w-fit">[14:20]</span>
+                  <div className="text-muted-foreground">
+                    <span className="text-primary">Fitness Studio:</span> Member check-in reminder sent
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
