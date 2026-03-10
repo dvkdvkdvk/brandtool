@@ -6,7 +6,7 @@ import { FieldGroup, Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { useState, useEffect } from "react"
-import { Copy, Check, Sparkles, ArrowUpRight } from "lucide-react"
+import { Copy, Check, Sparkles } from "lucide-react"
 
 export default function SettingsPage() {
   const [webhookUrl, setWebhookUrl] = useState("")
@@ -174,37 +174,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Pro Features */}
-      <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-primary/20">
-        <CardHeader>
-          <CardTitle>Upgrade to Pro</CardTitle>
-          <CardDescription>Unlock advanced features and higher limits</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2.5 text-sm mb-5">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-              <span>Unlimited connections</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-              <span>10,000 messages/month</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-              <span>Advanced analytics</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-              <span>Priority support</span>
-            </div>
-          </div>
-          <Button className="w-full">
-            Upgrade Now
-            <ArrowUpRight className="w-4 h-4 ml-2" />
-          </Button>
-        </CardContent>
-      </Card>
+
     </div>
   )
 }
