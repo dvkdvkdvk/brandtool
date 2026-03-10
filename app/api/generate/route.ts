@@ -11,6 +11,16 @@ export async function POST(req: Request) {
     screenshotUrl?: string  // Visual reference image
   }
 
+  console.log('[v0-api] Generation request:', {
+    prompt,
+    type,
+    style,
+    hasScreenshot: !!screenshotUrl,
+    screenshotUrl: screenshotUrl?.substring(0, 50) + '...',
+    hasTokens: !!tokens,
+    tokenColors: Object.keys(tokens?.colors || {}),
+  })
+
   // ============================================================
   // STEP 1: Extract colors from tokens
   // ============================================================
@@ -194,25 +204,30 @@ BRAND COLORS TO USE:
 - Border: ${border}`
 
   try {
-    // Use multimodal generation if we have a screenshot
-    const messages: Array<{ role: 'user'; content: Array<{ type: 'text'; text: string } | { type: 'image'; image: string }> }> = [
-      {
-        role: 'user',
-        content: screenshotUrl 
-          ? [
-              { type: 'image', image: screenshotUrl },
-              { type: 'text', text: userPrompt }
-            ]
-          : [
-              { type: 'text', text: userPrompt }
-            ]
+    // Build messages array with proper image format for AI SDK
+    const userContent: Array<{ type: 'text'; text: string } | { type: 'image'; image: URL }> = []
+    
+    // Add screenshot as image if available
+    if (screenshotUrl) {
+      try {
+        userContent.push({ type: 'image', image: new URL(screenshotUrl) })
+      } catch (e) {
+        console.warn('Invalid screenshot URL:', screenshotUrl)
       }
-    ]
+    }
+    
+    // Add the text prompt
+    userContent.push({ type: 'text', text: userPrompt })
 
     const result = await generateText({
       model: 'anthropic/claude-sonnet-4-20250514',
       system: systemPrompt,
-      messages,
+      messages: [
+        {
+          role: 'user',
+          content: userContent,
+        }
+      ],
       maxOutputTokens: 4000,
     })
 

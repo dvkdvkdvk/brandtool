@@ -13,6 +13,8 @@ import {
   FileCode,
   Globe,
   Loader2,
+  Upload,
+  X,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { toast } from 'sonner'
@@ -646,6 +648,50 @@ export function ProjectSidebar({
                     </Button>
                   </div>
                   
+                  {/* Screenshot Upload Option */}
+                  <div className="mt-3">
+                    <p className="text-xs text-muted-foreground mb-2">Or upload a screenshot of the client website:</p>
+                    <label className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-border rounded-lg hover:border-primary/50 hover:bg-muted/30 cursor-pointer transition-colors">
+                      <Upload className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Upload Screenshot</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          
+                          try {
+                            const formData = new FormData()
+                            formData.append('file', file)
+                            
+                            const response = await fetch('/api/upload-screenshot', {
+                              method: 'POST',
+                              body: formData,
+                            })
+                            
+                            const data = await response.json()
+                            
+                            if (data.url) {
+                              setScreenshotUrl(data.url)
+                              if (activeProject) {
+                                onUpdateProject(activeProject.id, { 
+                                  screenshotUrl: data.url 
+                                })
+                              }
+                              toast.success('Screenshot uploaded!', {
+                                description: 'AI will use this as visual reference'
+                              })
+                            }
+                          } catch (error) {
+                            toast.error('Upload failed', { description: 'Please try again' })
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+
                   {/* Screenshot Preview */}
                   {(screenshotUrl || activeProject?.screenshotUrl) && (
                     <div className="mt-3 rounded-lg border border-border overflow-hidden">
@@ -654,8 +700,21 @@ export function ProjectSidebar({
                         alt="Client website screenshot"
                         className="w-full h-32 object-cover object-top"
                       />
-                      <div className="p-2 bg-muted/50 text-xs text-muted-foreground">
-                        Visual reference captured - AI will match this style
+                      <div className="p-2 bg-muted/50 text-xs text-muted-foreground flex items-center justify-between">
+                        <span>Visual reference - AI will match this style</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 px-2 text-xs hover:text-destructive"
+                          onClick={() => {
+                            setScreenshotUrl('')
+                            if (activeProject) {
+                              onUpdateProject(activeProject.id, { screenshotUrl: '' })
+                            }
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
                       </div>
                     </div>
                   )}
