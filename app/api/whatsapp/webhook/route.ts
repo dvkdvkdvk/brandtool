@@ -33,30 +33,30 @@ const webhookSchema = z.object({
 
 // Verify webhook token
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const mode = searchParams.get("hub.mode")
-    const token = searchParams.get("hub.verify_token")
-    const challenge = searchParams.get("hub.challenge")
+  const url = new URL(request.url)
+  const mode = url.searchParams.get("hub.mode")
+  const token = url.searchParams.get("hub.verify_token")
+  const challenge = url.searchParams.get("hub.challenge")
+  
+  const verifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "886464"
 
-    const expectedToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN
+  console.log("[v0] GET /api/whatsapp/webhook")
+  console.log("[v0] mode:", mode)
+  console.log("[v0] token:", token)
+  console.log("[v0] expected:", verifyToken)
+  console.log("[v0] challenge:", challenge)
 
-    // Log for debugging
-    console.log("[v0] Webhook verification:")
-    console.log("[v0] mode =", mode, "token =", token, "expected =", expectedToken)
-
-    // Verify the token and mode
-    if (mode === "subscribe" && token === expectedToken) {
-      console.log("[v0] ✅ Webhook verified")
-      return new Response(challenge, { status: 200 })
-    }
-
-    console.log("[v0] ❌ Webhook verification failed")
-    return new Response("Forbidden", { status: 403 })
-  } catch (error) {
-    console.error("[v0] Webhook GET error:", error)
-    return new Response("Error", { status: 500 })
+  // Check mode and token
+  if (mode === "subscribe" && token === verifyToken) {
+    console.log("[v0] ✅ Token verified!")
+    return new Response(challenge, {
+      status: 200,
+      headers: { "Content-Type": "text/plain" },
+    })
   }
+
+  console.log("[v0] ❌ Verification failed")
+  return new Response("Unauthorized", { status: 403 })
 }
 
 // Handle incoming messages
